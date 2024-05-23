@@ -1,4 +1,4 @@
-import socket
+import threading
 import time
 import serial
 from time import sleep
@@ -7,17 +7,16 @@ import RPi.GPIO as GPIO
 import board
 from adafruit_motor import servo
 from adafruit_pca9685 import PCA9685
+import tty, sys, termios
 
 ser = serial.Serial(
-    port='/dev/ttyS0', 
+    port='/dev/ttyUSB0', 
     baudrate = 9600,
     parity=serial.PARITY_NONE,
     stopbits=serial.STOPBITS_ONE,
     bytesize=serial.EIGHTBITS,
     timeout=1
 )
-
-
 
 i2c = board.I2C()  
 pca = PCA9685(i2c)
@@ -27,73 +26,46 @@ servo2 = servo.Servo(pca.channels[1])
 servo3 = servo.Servo(pca.channels[2])
 servo4 = servo.Servo(pca.channels[3])
 
+acelerador = 0
+freno = 0
+clutch = 0
+transmision = 0
 velocidad = 0
+giro = ''
+pulsosA = 0
+pulsosB = 0
 
-# Banderas
-acelerando = False
-frenando = False
-
-tiempoTranscurrido = 0
-tiempoTemp = 0
-
-
-
-# Mapeo de pines
-    # Pin GPIO23 - Delantera izquierda
-    # Pin GPIO17 - Delantera derecha
-    # Pin GPIO22 - Trasera derecha 
-    # Pin GPIO27 - Trasera izquierda
 
 
 def main():
-
+    # Inicializando pistones
     servo1.angle = 67.5
     servo2.angle = 67.5
     servo3.angle = 67.5
     servo4.angle = 67.5
 
-    lectura()
 
-def acelerar():
-    servo3.angle = 0
-    servo4.angle = 0
-    servo1.angle = 135
-    servo2.angle = 135
+    p1 = threading.Thread(target=lectura)
+    p2 = threading.Thread(target=funcionamiento)
+    p3 = threading.Thread(target=listener)
+    p3.start()
+    p1.start()
+    p2.start()
 
-def frenar():
-    servo1.angle = 0
-    servo2.angle = 0
-    servo3.angle = 135
-    servo4.angle = 135 
 
-    
 def lectura():
 
-    # Indica si se está girando a la izquierda (I), o derecha (D)
-    giro = ''
-
-    pulsosA = 0
-    pulsosB = 0
-
-    # Variables de pedales (0 - 100)
-    clutch = 0
-    freno = 0
-    acelerador = 0
-
-    transmision = 0
-
-    switch = 0 
-
-    tiempoFrenando = 0
-    tiempoAcelerando = 0
+    global acelerador, freno, clutch, transmision, velocidad, giro, pulsosA, pulsosB
 
     while True:
+
         lectura = ser.read()
 
         # Detectando Identificador, para leer el siguiente dato
         if lectura == b'G':
+            
             giro = ser.read()
-            if giro== b'D' :
+            if giro == b'D' :
                 pulsosA += 1
             elif giro == b'I' :
                 pulsosB += 1
@@ -102,48 +74,82 @@ def lectura():
             aceleradorInf = int.from_bytes(ser.read(), byteorder='big')
             aceleradorSup = int.from_bytes(ser.read(), byteorder='big') << 8
             acelerador = acondicionarPedal(aceleradorSup, aceleradorInf)
-            if acelerador > 10:
-                tiempoAcelerando +=1
 
-            if tiempoAcelerando > 10:
-                tiempoAcelerando = 0
-                acelerar()
             
         elif lectura == b'F':
-            freno = ser.read()
-            frenoInf = int.from_bytes(freno, byteorder='big')
-            freno = ser.read()
-            frenoSup = int.from_bytes(freno, byteorder='big') << 8
+            frenoInf = int.from_bytes(ser.read(), byteorder='big')
+            frenoSup = int.from_bytes(ser.read(), byteorder='big') << 8
             freno = acondicionarPedal(frenoSup, frenoInf)
 
-            if freno > 10:
-                tiempoFrenando +=1
-
-            if tiempoFrenando > 10:
-                tiempoFrenando = 0
-                frenar()
 
         elif lectura == b'C':
-            clutch = ser.read()
-            clutchInf = int.from_bytes(clutch, byteorder='big')
-            clutch = ser.read()
-            clutchSup = int.from_bytes(clutch, byteorder='big') << 8
+            clutchInf = int.from_bytes(ser.read(), byteorder='big')
+            clutchSup = int.from_bytes(ser.read(), byteorder='big') << 8
             clutch = acondicionarPedal(clutchSup, clutchInf)
 
-        elif lectura == b'T':
-            transmision = ser.read()
             
-        elif lectura == b'S':
-            switch = ser.read()
-            
-        print("Giro: ", giro, "PulsosA: ", pulsosA, "PulsosB: ", pulsosB,  "Clutch: ", clutch, "Freno: ", freno,"Acelerador: ", acelerador, "Angulo: ", end='\r', flush=True)
+        print(f"---- Velocidad actual: {velocidad:.2f} m/s Giro: ", giro, "PulsosA: ", pulsosA, "PulsosB: ", pulsosB,  "Clutch: ", clutch, "Freno: ", freno,"Acelerador: ", acelerador, "Transmisión: ", transmision, "-----",  end='\r', flush=True)
 
-# Función que incrementa el contador de tiempo cada segundo
-def contador_tiempo():
-    global tiempoTranscurrido
+
+def funcionamiento () :
+
+    global acelerador, freno, clutch, transmision, velocidad
+
+    # Rango de velocidades máximas por marcha (en m/s)
+    velocidadesMaximas = [0, 20, 40, 60, 80, 90, -10]  # La última es para reversa
+
+    # Coeficientes de aceleración por marcha
+    coeficientesAceleracion = [0, 5, 4, 3, 2, 1, 2]  # La última es para reversa
+
     while True:
-        tiempoTranscurrido += 1
-        time.sleep(1)
+        # Constantes de desaceleración
+        maxFrenado = 15  # m/s^2 para freno al 100%
+        resistencia = 0.1  # Resistencia al movimiento
+
+        if transmision == 0 or clutch > 50:  # Neutral o clutch muy presionado
+            aceleracionEfectiva = 0
+        else:
+            # Coeficiente de la marcha actual
+            coeficiente = coeficientesAceleracion[transmision]
+            
+            # Aceleración efectiva basada en la transmisión y el acelerador
+            aceleracionEfectiva = (acelerador / 100) * coeficiente
+
+        # Desaceleración efectiva basada en el freno
+        frenadoEfectivo = (freno / 100) * maxFrenado
+
+        # Ajuste de la velocidad
+        nuevaVelocidad = velocidad + aceleracionEfectiva - frenadoEfectivo - resistencia
+
+        # Limitar la velocidad máxima de acuerdo a la marcha
+        velocidadMaxima = velocidadesMaximas[transmision]
+        if transmision != 6 and nuevaVelocidad > velocidadMaxima:  # No limitar la reversa
+            nuevaVelocidad = velocidadMaxima
+        elif transmision == 6 and nuevaVelocidad < velocidadMaxima:
+            nuevaVelocidad = velocidadMaxima
+
+        # Asegurarse de que la velocidad no sea negativa (excepto en reversa)
+        if transmision != 6 and nuevaVelocidad < 0:
+            nuevaVelocidad = 0
+        velocidad = nuevaVelocidad
+
+        sleep(1)
+
+
+def listener():
+    global transmision
+
+    filedescriptors = termios.tcgetattr(sys.stdin)
+    tty.setcbreak(sys.stdin)
+    x=0
+
+    while True:
+        x = sys.stdin.read(1)[0]
+        
+        if x in '0123456':
+            transmision = int(x)
+    
+    termios.tcsetattr(sys.stdin, termios.TCSADRAIN, filedescriptors)
 
 
 

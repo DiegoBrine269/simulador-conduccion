@@ -50,7 +50,7 @@ def calcular_velocidad():
         nueva_velocidad = 0
 
     velocidad = nueva_velocidad
-    print(f"Velocidad actual: {velocidad:.2f} m/s, Transmisión: {transmision}")
+    print(f"Velocidad actual: {velocidad:.2f} m/s, Transmisión: {transmision}, Acelerador: {acelerador}, Freno: {freno}")
 
 def ejecutar_cada_segundo():
     calcular_velocidad()
@@ -76,10 +76,28 @@ try:
         transmision = 2
 
         time.sleep(5)
-        acelerador = 0
-        freno = 100
+        acelerador = 100
+        freno = 0
         clutch = 0
-        transmision = 2
+        transmision = 3
+
+        time.sleep(5)
+        acelerador = 100
+        freno = 0
+        clutch = 0
+        transmision = 4
+
+        time.sleep(5)
+        acelerador = 0
+        freno = 50
+        clutch = 0
+        transmision = 3
+
+        time.sleep(5)
+        acelerador = 0
+        freno = 50
+        clutch = 0
+        transmision = 1
 
         time.sleep(6)
         acelerador = 0
