@@ -27,6 +27,7 @@ servo2 = servo.Servo(pca.channels[1], min_pulse=500, max_pulse=2400, actuation_r
 servo3 = servo.Servo(pca.channels[2], min_pulse=500, max_pulse=2400, actuation_range=90)
 servo4 = servo.Servo(pca.channels[3], min_pulse=500, max_pulse=2400, actuation_range=90)
 
+# Variables globales existentes
 acelerador = 0
 freno = 0
 clutch = 0
@@ -35,6 +36,14 @@ velocidad = 0
 giro = ''
 pulsosA = 0
 pulsosB = 0
+
+# Nueva variable global para la posición del volante
+posicionVolante = 0
+anguloMin = 0
+anguloMax = 90
+
+# Definir los límites de giro del volante
+limiteGiro = 45  # 1.5 vueltas son 45 posiciones
 
 def main():
     # Inicializando pistones
@@ -50,22 +59,18 @@ def main():
     p1.start()
     p2.start()
 
-
 def lectura():
-
     global acelerador, freno, clutch, transmision, velocidad, giro, pulsosA, pulsosB
 
     while True:
-
         lectura = ser.read()
 
         # Detectando Identificador, para leer el siguiente dato
         if lectura == b'G':
-            
             giro = ser.read()
-            if giro == b'D' :
+            if giro == b'D':
                 pulsosA += 1
-            elif giro == b'I' :
+            elif giro == b'I':
                 pulsosB += 1
 
         elif lectura == b'A':
@@ -73,24 +78,19 @@ def lectura():
             aceleradorSup = int.from_bytes(ser.read(), byteorder='big') << 8
             acelerador = acondicionarPedal(aceleradorSup, aceleradorInf)
 
-            
         elif lectura == b'F':
             frenoInf = int.from_bytes(ser.read(), byteorder='big')
             frenoSup = int.from_bytes(ser.read(), byteorder='big') << 8
             freno = acondicionarPedal(frenoSup, frenoInf)
-
 
         elif lectura == b'C':
             clutchInf = int.from_bytes(ser.read(), byteorder='big')
             clutchSup = int.from_bytes(ser.read(), byteorder='big') << 8
             clutch = acondicionarPedal(clutchSup, clutchInf)
 
-            
-        print(f"---- Velocidad actual: {velocidad:.2f} km/h Giro: ", giro, "PulsosA: ", pulsosA, "PulsosB: ", pulsosB,  "Clutch: ", clutch, "Freno: ", freno,"Acelerador: ", acelerador, "Transmisión: ", transmision, "-----",  end='\r', flush=True)
+        print(f"---- Velocidad actual: {velocidad:.2f} km/h Giro: {giro} PulsosA: {pulsosA} PulsosB: {pulsosB} Clutch: {clutch} Freno: {freno} Acelerador: {acelerador} Transmisión: {transmision} -----", end='\r', flush=True)
 
-
-def funcionamiento () :
-
+def funcionamiento():
     global acelerador, freno, clutch, transmision, velocidad
 
     # Rango de velocidades máximas por marcha (en m/s)
@@ -109,7 +109,7 @@ def funcionamiento () :
         else:
             # Coeficiente de la marcha actual
             coeficiente = coeficientesAceleracion[transmision]
-            
+
             # Aceleración efectiva basada en la transmisión y el acelerador
             aceleracionEfectiva = (acelerador / 100) * coeficiente
 
@@ -134,80 +134,90 @@ def funcionamiento () :
 
         velocidad = nuevaVelocidad
 
-        sleep(1)
+        # Actualizar el volante
+        actualizar_volante()
 
+        sleep(1)
 
 def listener():
     global transmision, clutch
 
     filedescriptors = termios.tcgetattr(sys.stdin)
     tty.setcbreak(sys.stdin)
-    x=0
+    x = 0
 
     while True:
         x = sys.stdin.read(1)[0]
-        
+
         if x in '0123456':
             if clutch > 50:
                 transmision = int(x)
-    
+
     termios.tcsetattr(sys.stdin, termios.TCSADRAIN, filedescriptors)
 
 # Actualiza la posición de los pistones en función a un cambio en la velocidad
 def actualizarPosicion(aceleracion):
-    # Aceleraciones positivas
-
     if aceleracion >= 4:
-        servo1.angle = 70
-        servo2.angle = 70
-        servo3.angle = 20
-        servo4.angle = 20
+        angles = (70, 70, 20, 20)
     elif aceleracion >= 3:
-        servo1.angle = 60
-        servo2.angle = 60
-        servo3.angle = 30
-        servo4.angle = 30
+        angles = (60, 60, 30, 30)
     elif aceleracion >= 2:
-        servo1.angle = 55
-        servo2.angle = 55
-        servo3.angle = 35
-        servo4.angle = 35
+        angles = (55, 55, 35, 35)
     elif aceleracion >= 1:
-        servo1.angle = 50
-        servo2.angle = 50
-        servo3.angle = 40
-        servo4.angle = 40
+        angles = (50, 50, 40, 40)
+    elif -1 < aceleracion < 1:
+        angles = (45, 45, 45, 45)
+    elif aceleracion >= -5:
+        angles = (40, 40, 50, 50)
+    elif aceleracion >= -8:
+        angles = (30, 30, 60, 60)
+    else:
+        angles = (10, 10, 80, 80)
 
-    # Sin cambio en la velocidad
-    elif (aceleracion >= 0 and aceleracion < 1) or (aceleracion <= 0 and aceleracion > -1):
-        servo1.angle = 45
-        servo2.angle = 45
-        servo3.angle = 45
-        servo4.angle = 45
+    servo1.angle, servo2.angle, servo3.angle, servo4.angle = angles
 
-    # Acelereaciones negativas
+# Actualizar el volante
+def actualizar_volante():
+    global pulsosA, pulsosB, posicionVolante, velocidad
 
-    elif aceleracion <= -1:
-        servo1.angle = 40
-        servo2.angle = 40
-        servo3.angle = 50
-        servo4.angle = 50
-    elif aceleracion <= -5:
-        servo1.angle = 30
-        servo2.angle = 30
-        servo3.angle = 60
-        servo4.angle = 60
-    if aceleracion <= -8:
-        servo1.angle = 10
-        servo2.angle = 10
-        servo3.angle = 80
-        servo4.angle = 80
+    # Calcular la posición del volante
+    posicionVolante = pulsosA - pulsosB
 
+    # Verificar si se ha alcanzado el límite de giro
+    if posicionVolante >= limiteGiro:
+        print("Advertencia: Se ha alcanzado el límite de giro hacia la derecha", end='\r', flush=True)
+        posicionVolante = limiteGiro  # Limitar la posición del volante
+    elif posicionVolante <= -limiteGiro:
+        print("Advertencia: Se ha alcanzado el límite de giro hacia la izquierda", end='\r', flush=True)
+        posicionVolante = -limiteGiro  # Limitar la posición del volante
+
+    # Ajustar la sensibilidad de la vuelta en función de la velocidad
+    maxVelocidad = 150  # Suponer una velocidad máxima (en la misma unidad que la variable velocidad)
+    sensibilidad = 1 - min(velocidad / maxVelocidad, 1)  # Sensibilidad disminuye con la velocidad
+
+    # Mapear la posición del volante a un ángulo de los servos
+    if posicionVolante > 0:  # Giro a la derecha
+        servo1.angle = anguloMax * sensibilidad  # Subir
+        servo2.angle = anguloMin + ((posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
+        servo3.angle = anguloMin + ((posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
+        servo4.angle = anguloMax * sensibilidad  # Subir
+    elif posicionVolante < 0:  # Giro a la izquierda
+        servo1.angle = anguloMin + ((-posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
+        servo2.angle = anguloMax * sensibilidad  # Subir
+        servo3.angle = anguloMax * sensibilidad  # Subir
+        servo4.angle = anguloMin + ((-posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
+    else:  # Sin giro (posición central)
+        servo1.angle = (anguloMax + anguloMin) / 2
+        servo2.angle = (anguloMax + anguloMin) / 2
+        servo3.angle = (anguloMax + anguloMin) / 2
+        servo4.angle = (anguloMax + anguloMin) / 2
+
+    print(f"Posición Volante: {posicionVolante}, Sensibilidad: {sensibilidad}")
+    print(f"Ángulo Servo Delantero Izquierdo: {servo1.angle}")
+    print(f"Ángulo Servo Delantero Derecho: {servo2.angle}")
+    print(f"Ángulo Servo Trasero Derecho: {servo3.angle}")
+    print(f"Ángulo Servo Trasero Izquierdo: {servo4.angle}")
 
 
 if __name__ == "__main__":
     main()
-    
-
-
-    
