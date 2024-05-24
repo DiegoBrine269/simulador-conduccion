@@ -155,53 +155,24 @@ def listener():
 
 # Actualiza la posición de los pistones en función a un cambio en la velocidad
 def actualizarPosicion(aceleracion):
-    # Aceleraciones positivas
-
     if aceleracion >= 4:
-        servo1.angle = 70
-        servo2.angle = 70
-        servo3.angle = 20
-        servo4.angle = 20
+        angles = (70, 70, 20, 20)
     elif aceleracion >= 3:
-        servo1.angle = 60
-        servo2.angle = 60
-        servo3.angle = 30
-        servo4.angle = 30
+        angles = (60, 60, 30, 30)
     elif aceleracion >= 2:
-        servo1.angle = 55
-        servo2.angle = 55
-        servo3.angle = 35
-        servo4.angle = 35
+        angles = (55, 55, 35, 35)
     elif aceleracion >= 1:
-        servo1.angle = 50
-        servo2.angle = 50
-        servo3.angle = 40
-        servo4.angle = 40
+        angles = (50, 50, 40, 40)
+    elif -1 < aceleracion < 1:
+        angles = (45, 45, 45, 45)
+    elif aceleracion >= -5:
+        angles = (40, 40, 50, 50)
+    elif aceleracion >= -8:
+        angles = (30, 30, 60, 60)
+    else:
+        angles = (10, 10, 80, 80)
 
-    # Sin cambio en la velocidad
-    elif (aceleracion >= 0 and aceleracion < 1) or (aceleracion <= 0 and aceleracion > -1):
-        servo1.angle = 45
-        servo2.angle = 45
-        servo3.angle = 45
-        servo4.angle = 45
-
-    # Acelereaciones negativas
-
-    elif aceleracion <= -1:
-        servo1.angle = 40
-        servo2.angle = 40
-        servo3.angle = 50
-        servo4.angle = 50
-    elif aceleracion <= -5:
-        servo1.angle = 30
-        servo2.angle = 30
-        servo3.angle = 60
-        servo4.angle = 60
-    if aceleracion <= -8:
-        servo1.angle = 10
-        servo2.angle = 10
-        servo3.angle = 80
-        servo4.angle = 80
+    servo1.angle, servo2.angle, servo3.angle, servo4.angle = angles
 
 
 
