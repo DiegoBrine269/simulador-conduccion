@@ -34,23 +34,24 @@ def actualizar_volante():
 
     # Mapear la posición del volante a un ángulo de los servos proporcionalmente
     angle_range = anguloMax - anguloMin
-    angle = anguloMin + (abs(posicionVolante) / limiteGiro) * angle_range * sensibilidad
+    angle = (abs(posicionVolante) / limiteGiro) * angle_range * sensibilidad
 
     if posicionVolante > 0:  # Giro a la derecha
-        servo1.angle = 45 - angle / 2  # Bajar proporcionalmente
-        servo2.angle = 45 + angle / 2  # Subir proporcionalmente
-        servo3.angle = 45 + angle / 2  # Subir proporcionalmente
-        servo4.angle = 45 - angle / 2  # Bajar proporcionalmente
+        servo1.angle = anguloMax - angle  # Bajar proporcionalmente
+        servo2.angle = angle  # Subir proporcionalmente
+        servo3.angle = angle  # Subir proporcionalmente
+        servo4.angle = anguloMax - angle  # Bajar proporcionalmente
     elif posicionVolante < 0:  # Giro a la izquierda
-        servo1.angle = 45 + angle / 2  # Subir proporcionalmente
-        servo2.angle = 45 - angle / 2  # Bajar proporcionalmente
-        servo3.angle = 45 - angle / 2  # Bajar proporcionalmente
-        servo4.angle = 45 + angle / 2  # Subir proporcionalmente
+        servo1.angle = angle  # Subir proporcionalmente
+        servo2.angle = anguloMax - angle  # Bajar proporcionalmente
+        servo3.angle = anguloMax - angle  # Bajar proporcionalmente
+        servo4.angle = angle  # Subir proporcionalmente
     else:  # Sin giro (posición central)
-        servo1.angle = 45
-        servo2.angle = 45
-        servo3.angle = 45
-        servo4.angle = 45
+        angle = 45
+        servo1.angle = angle
+        servo2.angle = angle
+        servo3.angle = angle
+        servo4.angle = angle
 
     print(f"Posición Volante: {posicionVolante}, Sensibilidad: {sensibilidad}")
     print(f"Ángulo Servo Delantero Izquierdo: {servo1.angle}")
@@ -63,8 +64,7 @@ def simulacion():
     global pulsosA, pulsosB, velocidad
 
     ejemplos = [
-        {"pulsosA": 1, "pulsosB": 0, "velocidad": 100},  # Pequeño giro a la derecha
-        # {"pulsosA": 45, "pulsosB": 0, "velocidad": 100},  # Máximo giro a la derecha
+        {"pulsosA": 45, "pulsosB": 23, "velocidad": 20},  # Máximo giro a la derecha
         # {"pulsosA": 0, "pulsosB": 45, "velocidad": 100},  # Máximo giro a la izquierda
         # {"pulsosA": 22, "pulsosB": 22, "velocidad": 50},  # Sin giro
         # {"pulsosA": 40, "pulsosB": 10, "velocidad": 100}, # Giro a la derecha, alta velocidad

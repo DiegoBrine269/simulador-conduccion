@@ -212,11 +212,11 @@ def actualizar_volante():
         servo3.angle = (anguloMax + anguloMin) / 2
         servo4.angle = (anguloMax + anguloMin) / 2
 
-    print(f"Posición Volante: {posicionVolante}, Sensibilidad: {sensibilidad}")
-    print(f"Ángulo Servo Delantero Izquierdo: {servo1.angle}")
-    print(f"Ángulo Servo Delantero Derecho: {servo2.angle}")
-    print(f"Ángulo Servo Trasero Derecho: {servo3.angle}")
-    print(f"Ángulo Servo Trasero Izquierdo: {servo4.angle}")
+    print(f"Posición Volante: { posicionVolante }, Sensibilidad: { sensibilidad }")
+    print(f"Ángulo Servo Delantero Izquierdo: { servo1.angle }")
+    print(f"Ángulo Servo Delantero Derecho: { servo2.angle }")
+    print(f"Ángulo Servo Trasero Derecho: { servo3.angle }")
+    print(f"Ángulo Servo Trasero Izquierdo: { servo4.angle }")
 
 
 if __name__ == "__main__":
