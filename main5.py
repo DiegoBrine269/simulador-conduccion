@@ -227,83 +227,39 @@ def actualizarPosicion(aceleracion, posicionVolante, velocidad):
                 angles = (10, 10, 80, 80)
 
         #Giros a la izquierda
-        elif -20 < posicionVolante <= -4:
+        elif -20 < posicionVolante <= -3:
             if velocidad < 10:
                 angles = (45, 35, 35, 45)
-            elif 10 < velocidad < 40: 
+            elif 10 <= velocidad < 40: 
                 angles = (45, 25, 25, 45)
-            elif 41 <= velocidad :
+            elif 40 <= velocidad :
                 angles = (45, 15, 15, 45)
         elif -45 <= posicionVolante  <= -21:
             if velocidad < 10:
                 angles = (45, 25, 25, 45)
-            elif 10 < velocidad < 40:
+            elif 10 <= velocidad < 40:
                 angles = (45, 15, 15, 45)
-            elif 41 <= velocidad :
+            elif 40 <= velocidad :
                 angles = (10, 60, 60, 10)
 
         # Giros a la derecha
-        elif 4 <= posicionVolante < 20:
+        elif 3 <= posicionVolante < 20:
             if velocidad < 10:
                 angles = (30, 45, 45, 30)
             elif 10 <= velocidad < 40:
                 angles = (25, 45, 45, 25)
-            elif 41 <= velocidad :
+            elif 40 <= velocidad :
                 angles = (15, 45, 45, 15)
         elif 21 <= posicionVolante <= 45:
             if velocidad < 10:
                 angles = (15, 55, 55, 15)
             elif 10 <= velocidad < 40:
                 angles = (10, 60, 60, 10)
-            elif 41 <= velocidad :
+            elif 40 <= velocidad :
                 angles = (80,10, 10, 80)
     
     servo1.angle, servo2.angle, servo3.angle, servo4.angle = angles
 
-<<<<<<< HEAD
-=======
-# Actualizar el volante
-def actualizar_volante():
-    global pulsosA, pulsosB, posicionVolante, velocidad
-
-    # Calcular la posición del volante
-    posicionVolante = pulsosA - pulsosB
-
-    # Verificar si se ha alcanzado el límite de giro
-    if posicionVolante >= limiteGiro:
-        print("Advertencia: Se ha alcanzado el límite de giro hacia la derecha", end='\r', flush=True)
-        posicionVolante = limiteGiro  # Limitar la posición del volante
-    elif posicionVolante <= -limiteGiro:
-        print("Advertencia: Se ha alcanzado el límite de giro hacia la izquierda", end='\r', flush=True)
-        posicionVolante = -limiteGiro  # Limitar la posición del volante
-
-    # Ajustar la sensibilidad de la vuelta en función de la velocidad
-    maxVelocidad = 150  # Suponer una velocidad máxima (en la misma unidad que la variable velocidad)
-    sensibilidad = 1 - min(velocidad / maxVelocidad, 1)  # Sensibilidad disminuye con la velocidad
-
-    # Mapear la posición del volante a un ángulo de los servos
-    if posicionVolante > 0:  # Giro a la derecha
-        servo1.angle = anguloMax * sensibilidad  # Subir
-        servo2.angle = anguloMin + ((posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
-        servo3.angle = anguloMin + ((posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
-        servo4.angle = anguloMax * sensibilidad  # Subir
-    elif posicionVolante < 0:  # Giro a la izquierda
-        servo1.angle = anguloMin + ((-posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
-        servo2.angle = anguloMax * sensibilidad  # Subir
-        servo3.angle = anguloMax * sensibilidad  # Subir
-        servo4.angle = anguloMin + ((-posicionVolante / limiteGiro) * (anguloMax - anguloMin) / 2) * sensibilidad  # Bajar parcialmente
-    else:  # Sin giro (posición central)
-        servo1.angle = (anguloMax + anguloMin) / 2
-        servo2.angle = (anguloMax + anguloMin) / 2
-        servo3.angle = (anguloMax + anguloMin) / 2
-        servo4.angle = (anguloMax + anguloMin) / 2
-
-    print(f"Posición Volante: { posicionVolante }, Sensibilidad: { sensibilidad }")
-    print(f"Ángulo Servo Delantero Izquierdo: { servo1.angle }")
-    print(f"Ángulo Servo Delantero Derecho: { servo2.angle }")
-    print(f"Ángulo Servo Trasero Derecho: { servo3.angle }")
-    print(f"Ángulo Servo Trasero Izquierdo: { servo4.angle }")
->>>>>>> 0446b85025b7bad53d2a031cdce5e8708d9a17e7
 
 
 if __name__ == "__main__":
